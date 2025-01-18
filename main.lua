@@ -1,33 +1,12 @@
---This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.
-repeat task.wait() until game:IsLoaded()
-if shared.vape then shared.vape:Uninject() end
-
--- why do exploits fail to implement anything correctly? Is it really that hard?
-if identifyexecutor then
-	if table.find({'Argon', 'Wave'}, ({identifyexecutor()})[1]) then
-		getgenv().setthreadidentity = nil
-	end
-end
-
-local vape
-local loadstring = function(...)
-	local res, err = loadstring(...)
-	if err and vape then
-		vape:CreateNotification('Vape', 'Failed to load : '..err, 30, 'alert')
-	end
-	return res
-end
-local queue_on_teleport = queue_on_teleport or function() end
 local isfile = isfile or function(file)
 	local suc, res = pcall(function()
 		return readfile(file)
 	end)
 	return suc and res ~= nil and res ~= ''
 end
-local cloneref = cloneref or function(obj)
-	return obj
+local delfile = delfile or function(file)
+	writefile(file, '')
 end
-local playersService = cloneref(game:GetService('Players'))
 
 local function downloadFile(path, func)
 	if not isfile(path) then
@@ -45,74 +24,36 @@ local function downloadFile(path, func)
 	return (func or readfile)(path)
 end
 
-local function finishLoading()
-	vape.Init = nil
-	vape:Load()
-	task.spawn(function()
-		repeat
-			vape:Save()
-			task.wait(10)
-		until not vape.Loaded
+local function wipeFolder(path)
+	if not isfolder(path) then return end
+	for _, file in listfiles(path) do
+		if file:find('loader') then continue end
+		if isfile(file) and select(1, readfile(file):find('--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.')) == 1 then
+			delfile(file)
+		end
+	end
+end
+
+for _, folder in {'snoopyvape', 'snoopyvape/games', 'snoopyvape/profiles', 'snoopyvape/assets', 'snoopyvape/libraries', 'snoopyvape/guis'} do
+	if not isfolder(folder) then
+		makefolder(folder)
+	end
+end
+
+if not shared.VapeDeveloper then
+	local _, subbed = pcall(function() 
+		return game:HttpGet('https://github.com/7GrandDadPGN/VapeV4ForRoblox') 
 	end)
-
-	local teleportedServers
-	vape:Clean(playersService.LocalPlayer.OnTeleport:Connect(function()
-		if (not teleportedServers) and (not shared.VapeIndependent) then
-			teleportedServers = true
-			local teleportScript = [[
-				shared.vapereload = true
-				if shared.VapeDeveloper then
-					loadstring(readfile('snoopyvape/loader.lua'), 'loader')()
-				else
-					loadstring(game:HttpGet('https://raw.githubusercontent.com/SnoopyOwner/SnoopyVapeV4ForRoblox/'..readfile('snoopyvape/profiles/commit.txt')..'/loader.lua', true), 'loader')()
-				end
-			]]
-			if shared.VapeDeveloper then
-				teleportScript = 'shared.VapeDeveloper = true\n'..teleportScript
-			end
-			if shared.VapeCustomProfile then
-				teleportScript = 'shared.VapeCustomProfile = "'..shared.VapeCustomProfile..'"\n'..teleportScript
-			end
-			vape:Save()
-			queue_on_teleport(teleportScript)
-		end
-	end))
-
-	if not shared.vapereload then
-		if not vape.Categories then return end
-		if vape.Categories.Main.Options['GUI bind indicator'].Enabled then
-			vape:CreateNotification('Finished Loading', vape.VapeButton and 'Press the button in the top right to open GUI' or 'Press '..table.concat(vape.Keybind, ' + '):upper()..' to open GUI', 5)
-		end
+	local commit = subbed:find('currentOid')
+	commit = commit and subbed:sub(commit + 13, commit + 52) or nil
+	commit = commit and #commit == 40 and commit or 'main'
+	if commit == 'main' or (isfile('snoopyvape/profiles/commit.txt') and readfile('snoopyvape/profiles/commit.txt') or '') ~= commit then
+		wipeFolder('snoopyvape')
+		wipeFolder('snoopyvape/games')
+		wipeFolder('snoopyvape/guis')
+		wipeFolder('snoopyvape/libraries')
 	end
+	writefile('snoopyvape/profiles/commit.txt', commit)
 end
 
-if not isfile('snoopyvape/profiles/gui.txt') then
-	writefile('snoopyvape/profiles/gui.txt', 'new')
-end
-local gui = readfile('snoopyvape/profiles/gui.txt')
-
-if not isfolder('snoopyvape/assets/'..gui) then
-	makefolder('snoopyvape/assets/'..gui)
-end
-vape = loadstring(downloadFile('snoopyvape/guis/'..gui..'.lua'), 'gui')()
-shared.vape = vape
-
-if not shared.VapeIndependent then
-	loadstring(downloadFile('snoopyvape/games/universal.lua'), 'universal')()
-	if isfile('snoopyvape/games/'..game.PlaceId..'.lua') then
-		loadstring(readfile('snoopyvape/games/'..game.PlaceId..'.lua'), tostring(game.PlaceId))(...)
-	else
-		if not shared.VapeDeveloper then
-			local suc, res = pcall(function()
-				return game:HttpGet('https://raw.githubusercontent.com/SnoopyOwner/SnoopyVapeV4ForRoblox/'..readfile('snoopyvape/profiles/commit.txt')..'/games/'..game.PlaceId..'.lua', true)
-			end)
-			if suc and res ~= '404: Not Found' then
-				loadstring(downloadFile('snoopyvape/games/'..game.PlaceId..'.lua'), tostring(game.PlaceId))(...)
-			end
-		end
-	end
-	finishLoading()
-else
-	vape.Init = finishLoading
-	return vape
-end
+return loadstring(downloadFile('snoopyvape/main.lua'), 'main')()
