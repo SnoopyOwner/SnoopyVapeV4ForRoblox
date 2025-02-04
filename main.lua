@@ -11,7 +11,7 @@ end
 local function downloadFile(path, func)
 	if not isfile(path) then
 		local suc, res = pcall(function()
-			return game:HttpGet('https://raw.githubusercontent.com/SnoopyOwner/SnoopyVapeV4ForRoblox/'..readfile('snoopyvape/profiles/commit.txt')..'/'..select(1, path:gsub('snoopyvape/', '')), true)
+			return game:HttpGet('https://raw.githubusercontent.com/7GrandDadPGN/VapeV4ForRoblox/'..readfile('snoopyvape/profiles/commit.txt')..'/'..select(1, path:gsub('snoopyvape/', '')), true)
 		end)
 		if not suc or res == '404: Not Found' then
 			error(res)
@@ -41,8 +41,8 @@ for _, folder in {'snoopyvape', 'snoopyvape/games', 'snoopyvape/profiles', 'snoo
 end
 
 if not shared.VapeDeveloper then
-	local _, subbed = pcall(function() 
-		return game:HttpGet('https://github.com/SnoopyOwner/SnoopyVapeV4ForRoblox') 
+	local _, subbed = pcall(function()
+		return game:HttpGet('https://github.com/7GrandDadPGN/VapeV4ForRoblox')
 	end)
 	local commit = subbed:find('currentOid')
 	commit = commit and subbed:sub(commit + 13, commit + 52) or nil
