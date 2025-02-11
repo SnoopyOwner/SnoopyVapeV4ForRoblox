@@ -8525,6 +8525,7 @@ run(function()
 							doClone()
 							antihitting = true
 							repeat task.wait() until (tick() - antihitsky) > (0.1 * antihitdelay.Value)
+							antihitsky = tick() + 0.07
 							antihitting = false
 						else
 							antihitting = false
